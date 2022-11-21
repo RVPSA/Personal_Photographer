@@ -10,7 +10,7 @@ firebase.put('/centerX:','a',cor)
 notification = Notify()
 
 video=cv2.VideoCapture(0)
-#video=cv2.VideoCapture(0) when using usb cam
+#video=cv2.VideoCapture(1) when using usb cam
 #address = "https://192.168.43.203:8080/video" when using ip web cam
 #video.open(address)
 
