@@ -2,6 +2,9 @@ import mediapipe as mp
 import cv2
 from pyfirmata import Arduino,SERVO,util
 from time import sleep
+#import requests
+
+#URL = "http://192.168.1.34"
 
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
@@ -14,16 +17,29 @@ pin = 10
 board = Arduino(port)
 board.digital[pin].mode = SERVO
 #board.digital[pin2].mode = SERVO
+ledL = board.get_pin('d:9:o')
+ledR = board.get_pin('d:11:o')
+
+
+def on(ledPin):
+    ledPin.write(1)
+def off(ledPin):
+    ledPin.write(0)
 
 cap = cv2.VideoCapture(0)
+#address = "https://192.168.8.102:8080/video"
+#cap.open(address)
+
 video = cv2.VideoWriter('webcam.avi', cv2.VideoWriter_fourcc(*'MP42'), 20.0, (640, 480))
 record = False
 
 tracker = cv2.legacy.TrackerMOSSE_create() #------------
 ret, frame = cap.read() #------------
 image = cv2.flip(frame, 1)
+#image = cv2.rotate(image, cv2.ROTATE_180)
 bbox = cv2.selectROI("Personal Robot Photographer",image,False) #------------
 tracker.init(image,bbox) #------------
+
 
 def map_rangeX(x):
     return (x - 0) * (256 - 0) // (635 - 0) + 0
@@ -34,22 +50,37 @@ def map_rangeX(x):
 def drawBox(img,bbox): #------------
     x,y,w,h = int(bbox[0]),int(bbox[1]),int(bbox[2]),int(bbox[3]) #------------
     cv2.rectangle(img,(x,y),((x+w),(y+h)),(255,255,0),3,1) #------------
-    print(x)
     print(map_rangeX(x))
     if map_rangeX(x) <= 0:
         rotateServo(pin, 0)
+        on(ledR)
+        off(ledL)
+    #elif map_rangeX(x) <=50 and map_rangeX(x) <=100:
+        #rotateServo(pin, 90)
+        #on(ledR)
+        #on(ledL)
     else:
+        #requests.get(url=URL,params={'led': str(map_rangeX(x))})
         rotateServo(pin, map_rangeX(x))
+        on(ledL)
+        on(ledR)
+        #rotateServo(pin, 90)
+    if map_rangeX(x) >= 175:
+        on(ledL)
+        off(ledR)
 
 def rotateServo(pin,angle):
     board.digital[pin].write(angle)
     sleep(0.015)
 
+#rotateServo(pin,90)
 with mp_hands.Hands(min_detection_confidence=0.8, min_tracking_confidence=0.5) as hands:
     while cap.isOpened():
         ret, frame = cap.read() #------------
         # Flip on horizontal
         image = cv2.flip(frame, 1)
+        #image = cv2.rotate(image, cv2.ROTATE_180)
+        #image = cv2.rotate(image, cv2.cv2.ROTATE_90_CLOCKWISE)
         ret, bbox = tracker.update(image) #------------
         drawBox(image, bbox) #------------
         # BGR 2 RGB
